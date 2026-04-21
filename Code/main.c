@@ -14,11 +14,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <direct.h>
 #include <assert.h>
 #include <math.h>
 #include <locale.h>
-#include <windows.h>
 #include <sys/stat.h>
 #include <time.h>
 #include "main.h"
@@ -39,7 +37,9 @@
 #include "utf8_helpers.h"
 #include "vcd.h"
 
+#ifdef _WIN32
 #pragma comment(linker, "/STACK:8388608")       // Increase stack size to 8 MB
+#endif
 
 
 /**********************************************/
@@ -118,7 +118,7 @@ char *duplicate_string(const char *string_to_duplicate)
 
     size_t strSize = strlen(string_to_duplicate) + 1;
     char *string_duplicate = allocate_memory(strSize, "StringDup");
-    strcpy_s(string_duplicate, strSize, string_to_duplicate);
+    memcpy(string_duplicate, string_to_duplicate, strSize);
 
     return string_duplicate;
 }
@@ -126,7 +126,7 @@ char *duplicate_string(const char *string_to_duplicate)
 
 /**
  * @brief Prints command line parameters and RTEmsg utility version and revision.
- * 
+ *
  * @param argc Number of command line parameters.
  * @param argv Array of command line parameter strings.
  */
@@ -145,7 +145,7 @@ static void print_cmd_line_parameters(int argc, char *argv[])
 
 /**
  * @brief Report the file error in the file 'errors.msg' if detected.
- * 
+ *
  * @param file      Pointer to the file structure
  * @param file_name Pointer to the file name
  */
@@ -191,7 +191,7 @@ static void check_print_errors(void)
     {
         if (g_msg.enums[i].type == OUT_FILE_TYPE)
         {
-            check_file_errors(g_msg.enums[i].p_file, g_msg.enums[i].file_name);
+            check_file_errors(g_msg.enums[i].data.p_file, g_msg.enums[i].file_name);
         }
     }
 }
@@ -200,14 +200,14 @@ static void check_print_errors(void)
 /**
  * @brief Print the full binary file name and creation date to a file,
  *        and prepare the date string for the special format type "%D".
- * 
+ *
  * @param out Pointer to the output file.
  */
 
 void print_data_file_name_and_date(FILE * out)
 {
-    struct _stat stbuf;
-    int rez = _stat(g_msg.param.data_file_name, &stbuf);
+    struct stat stbuf;
+    int rez = stat(g_msg.param.data_file_name, &stbuf);
     if (rez == 0)
     {
         fprintf(out, get_message_text(MSG_BIN_FILE_NAME_DATE));
@@ -319,8 +319,7 @@ static void set_message_printing_locale(void)
 
     if (g_msg.param.codepage_utf8)
     {
-        SetConsoleOutputCP(CP_UTF8);
-        SetConsoleCP(CP_UTF8);
+        rte_set_console_utf8();
     }
 }
 
@@ -339,8 +338,8 @@ static void report_fatal_error_during_message_decoding(void)
             fprintf(g_msg.file.main_log, "\nFatal exception occurred while processing binary files!");
         }
         fprintf(g_msg.file.error_log, "\nFatal exception occurred while processing binary files!");
-        _fcloseall();
-        (void)_wchdir(g_msg.file.start_folder);      // Return to the initial working directory
+        close_all_open_files();
+        (void)rte_change_directory(g_msg.file.start_folder);      // Return to the initial working directory
     }
 }
 
@@ -358,8 +357,8 @@ static void report_fatal_error_during_format_file_processing(void)
         // TODO: Report the name and line of the currently processed format definition file
         open_output_folder();
         remove_file(RTE_MAIN_LOG_FILE);             // Remove the Main.log file
-        _fcloseall();
-        (void)_wchdir(g_msg.file.start_folder);     // Return to the initial working directory
+        close_all_open_files();
+        (void)rte_change_directory(g_msg.file.start_folder);     // Return to the initial working directory
     }
 }
 
@@ -371,7 +370,7 @@ static void report_fatal_error_during_format_file_processing(void)
 
 static void remove_invalid_files(void)
 {
-    _fcloseall();
+    close_all_open_files();
     open_output_folder();               // Open the folder where output files are created
     remove_file(RTE_MAIN_LOG_FILE);
     remove_file(RTE_STAT_MAIN_FILE);
@@ -429,7 +428,7 @@ static void prepare_sys_msg_fmt_structure(void)
 
 /**
  * @brief Main function for processing binary data files.
- * 
+ *
  * @param argc Number of command line parameters
  * @param argv Array of command line parameter strings
  */
@@ -491,19 +490,19 @@ int main(int argc, char *argv[])
 {
     int ret_value = 0;
     clock_t begin_parsing = clock();    // Start measuring execution time.
-   
+
     setup_working_folder_info();
     load_text_messages();               // Load text strings for errors and other messages.
     process_command_line_parameters(argc, argv);
 
     if (g_msg.param.codepage_utf8)
     {
-        SetConsoleOutputCP(CP_UTF8);
-        SetConsoleCP(CP_UTF8);
+        rte_set_console_utf8();
     }
 
     create_error_file();                // Create default output files and load error messages.
 
+#if defined(_MSC_VER) && defined(_WIN32)
     __try
     {
         setlocale(LC_ALL, "C");         // Set locale to "C" to use dots as decimal separators.
@@ -520,6 +519,16 @@ int main(int argc, char *argv[])
         report_fatal_error_during_format_file_processing();
         return EXIT_FATAL_EXCEPTION_DETECTED_FMT;
     }
+#else
+    setlocale(LC_ALL, "C");         // Set locale to "C" to use dots as decimal separators.
+    create_timestamps_file();
+    remove_old_files();
+
+    // Initialize the first 32 enum locations for filter information.
+    g_msg.enums_found = NUMBER_OF_FILTER_BITS;
+
+    parse_fmt_file(RTE_MAIN_FMT_FILE, NULL);    // Begin parsing the main format file.
+#endif
 
     clock_t end_parsing = clock();      // End of format definition parsing and start of binary file processing.
     set_message_printing_locale();
@@ -533,7 +542,7 @@ int main(int argc, char *argv[])
             utf8_print_string(text, 0);
         }
         remove_invalid_files();
-        (void)_wchdir(g_msg.file.start_folder);      // Return to the initial working directory.
+        (void)rte_change_directory(g_msg.file.start_folder);      // Return to the initial working directory.
         return EXIT_FATAL_FMT_PARSING_ERRORS;
     }
 
@@ -543,6 +552,7 @@ int main(int argc, char *argv[])
 
     if (!g_msg.param.check_syntax_and_compile)
     {
+#if defined(_MSC_VER) && defined(_WIN32)
         __try
         {
             Process_binary_data_file(argc, argv);
@@ -552,6 +562,9 @@ int main(int argc, char *argv[])
             report_fatal_error_during_message_decoding();
             return EXIT_FATAL_EXCEPTION_DETECTED_BIN;
         }
+    #else
+        Process_binary_data_file(argc, argv);
+    #endif
 
         if (g_msg.total_errors > 0)
         {
@@ -565,8 +578,8 @@ int main(int argc, char *argv[])
 
     check_print_errors();
     print_execution_time(begin_parsing, end_parsing);
-    _fcloseall();
-    (void)_wchdir(g_msg.file.start_folder);      // Return to the initial working directory.
+    close_all_open_files();
+    (void)rte_change_directory(g_msg.file.start_folder);      // Return to the initial working directory.
     return ret_value;
 }
 

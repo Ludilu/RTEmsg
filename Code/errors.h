@@ -58,14 +58,14 @@ enum internal_errors_t
 };
 
 // Function declarations for error reporting
-__declspec(noreturn) void report_fatal_error_and_exit(uint32_t error_code,
+RTE_NORETURN void report_fatal_error_and_exit(uint32_t error_code,
     const char *additional_text, size_t additional_value);
 void report_problem(uint32_t error_code, int additional_data);
 void report_problem2(uint32_t error_code, uint32_t additional_data,
     uint32_t additional_data2);
 void report_problem_with_string(uint32_t error_code, const char *name);
-__declspec(noreturn) void report_error_and_exit(const char *error_message, int exit_code);
-__declspec(noreturn) void report_error_and_show_instructions(const char *error_message,
+RTE_NORETURN void report_error_and_exit(const char *error_message, int exit_code);
+RTE_NORETURN void report_error_and_show_instructions(const char *error_message,
     const char *msg_extension);
 void report_decode_error_summary(void);
 

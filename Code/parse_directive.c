@@ -15,8 +15,6 @@
 #include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
-#include <Windows.h>
-#include <versionhelpers.h>
 #include "parse_directive_helpers.h"
 #include "parse_fmt_string.h"
 #include "parse_directive.h"
@@ -34,8 +32,9 @@
  *        This function is used in potentially recursive functions.
  */
 
-__declspec(noinline) void check_stack_space(void)
+RTE_NOINLINE void check_stack_space(void)
 {
+#if defined(_MSC_VER) && defined(_WIN32)
     if (!IsWindows8OrGreater())
     {
         // The GetCurrentThreadStackLimits() kernel function is only available on Windows 8 or higher.
@@ -58,6 +57,7 @@ __declspec(noinline) void check_stack_space(void)
     {
         report_fatal_error_and_exit(FATAL_STACK_LOW, "", (size_t)remaining);
     }
+#endif
 }
 
 
@@ -234,7 +234,7 @@ static void parse_memo(parse_handle_t *parse_handle)
         }
 
         *position = end_position;
-        g_msg.enums[g_msg.enums_found].memo_value = memo_init_val;
+        g_msg.enums[g_msg.enums_found].data.memo_value = memo_init_val;
     }
 
     check_closing_bracket(parse_handle, position);
@@ -406,7 +406,7 @@ static void parse_select_out_file(parse_handle_t *parse_handle)
     if (g_msg.enums[parse_handle->current_out_file_idx].vcd_data != NULL)
     {
         parse_handle->special_fmt = VCD_WORK;
-        
+
         if (double_greater_than_sign)
         {
             catch_parsing_error(parse_handle,
@@ -526,7 +526,7 @@ static void parse_filter(parse_handle_t *parse_handle)
         }
 
         process_escape_sequences(filter_descr, MAX_NAME_LENGTH);
-        g_msg.enums[filter_no].filter_description = duplicate_string(filter_descr);
+        g_msg.enums[filter_no].data.filter_description = duplicate_string(filter_descr);
     }
 
     check_closing_bracket(parse_handle, position);
@@ -714,7 +714,7 @@ static void parse_out_file(parse_handle_t *parse_handle)
     {
         // Allocate a structure for VCD file data
         g_msg.enums[g_msg.enums_found].vcd_data = allocate_memory(sizeof(vcd_file_data_t), "vcd_data");
-        
+
         // Do not write TsJumpBack values to VCD files until first error is detected
         g_msg.enums[g_msg.enums_found].vcd_data->last_timestamp_error_value = '0';
 
@@ -735,7 +735,7 @@ static void parse_out_file(parse_handle_t *parse_handle)
             catch_parsing_error(parse_handle, ERR_PARSE_OUT_NOT_CREATED, file_path);
         }
 
-        g_msg.enums[g_msg.enums_found].p_file = new_file;
+        g_msg.enums[g_msg.enums_found].data.p_file = new_file;
     }
 
     g_msg.enums_found++;
@@ -883,8 +883,8 @@ static void parse_input_line(parse_handle_t *parse_handle, char *file_line)
 
 static void set_default_fmt(parse_handle_t *parse_handle)
 {
-    if ((parse_handle->p_current_message == NULL) || 
-        (parse_handle->p_current_message->format == NULL) || 
+    if ((parse_handle->p_current_message == NULL) ||
+        (parse_handle->p_current_message->format == NULL) ||
         (parse_handle->p_current_message->format->fmt_string != NULL))
     {
         return;
@@ -941,7 +941,7 @@ void parse_fmt_file(const char *filepath, parse_handle_t *parent_parse_handle)
             break;
         }
 
-        _set_errno(0);
+        rte_clear_errno();
 
         if (fgets(file_line, MAX_INPUT_LINE_LENGTH, parse_handle.p_fmt_file) == NULL)
         {

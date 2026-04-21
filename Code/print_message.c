@@ -13,6 +13,7 @@
  ******************************************************************************/
 
 #include "pch.h"
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include "print_helper.h"
@@ -23,7 +24,7 @@
 #include "vcd.h"
 
 
-#if _WIN64 != 1
+#if UINTPTR_MAX < 0xFFFFFFFFFFFFFFFFULL
 #error "The software was tested in the 64-bit mode only."
 #endif
 
@@ -49,7 +50,7 @@ typedef union convert_f64
  * @param value    Binary value to be written.
  * @param size     Number of binary digits to be printed.
  */
- 
+
 static void print_binary64(FILE *out, uint64_t value, uint32_t size)
 {
     if (size == 0)
@@ -86,7 +87,7 @@ static void print_binary64(FILE *out, uint64_t value, uint32_t size)
  * @param size     Pointer to the number of bytes.
  * @param print_as Print data as bytes (1), 16-bit (2), or 32-bit (4) words.
  */
- 
+
 static void hex_print(FILE *out, unsigned char **message, unsigned int *size, int print_as)
 {
     unsigned int i = 0;
@@ -134,7 +135,7 @@ static void hex_print(FILE *out, unsigned char **message, unsigned int *size, in
  * @param size      Size of the data to be printed.
  * @param print_as  Format for printing the message (1=bytes, 2=16-bit words, 4=32-bit words).
  */
- 
+
 static void hex_print_complete_message(FILE *out, unsigned char *message, unsigned size, unsigned print_as)
 {
     unsigned int i = 0;
@@ -196,7 +197,7 @@ static void value_scaling(value_format_t *fmt, double data)
     {
         g_msg.value.data_double = (data + fmt->offset) * fmt->mult;
 
-        /* Convert the scaled double value to integer and unsigned integer also to 
+        /* Convert the scaled double value to integer and unsigned integer also to
          * enable printing with %d, %u, etc. */
         g_msg.value.data_i64 = (int64_t)round(g_msg.value.data_double);
         g_msg.value.data_u64 = (uint64_t)round(g_msg.value.data_double);
@@ -316,7 +317,7 @@ static void save_to_memo(rte_enum_t memo)
     {
         if (g_msg.enums[memo].type == MEMO_TYPE)
         {
-            g_msg.enums[memo].memo_value = g_msg.value.data_double;
+            g_msg.enums[memo].data.memo_value = g_msg.value.data_double;
         }
         else
         {
@@ -511,7 +512,7 @@ static void process_memo(value_format_t *fmt)
     {
         if ((g_msg.enums[fmt->get_memo].name != NULL) && (g_msg.enums[fmt->get_memo].type == MEMO_TYPE))
         {
-            g_msg.value.data_double = g_msg.enums[fmt->get_memo].memo_value;
+            g_msg.value.data_double = g_msg.enums[fmt->get_memo].data.memo_value;
             g_msg.value.data_i64 = (int64_t)g_msg.value.data_double;
             g_msg.value.data_u64 = (uint64_t)g_msg.value.data_double;
         }
@@ -813,7 +814,7 @@ static const char *get_selected_text(rte_enum_t in_file, unsigned index)
     {
         if ((g_msg.enums[in_file].type == Y_TEXT_TYPE) || (g_msg.enums[in_file].type == IN_FILE_TYPE))
         {
-            char *y_text = g_msg.enums[in_file].in_file_txt;
+            char *y_text = g_msg.enums[in_file].data.in_file_txt;
 
             if (y_text == NULL)
             {
@@ -870,7 +871,7 @@ static void timestamp_logging(void)
 
 static void hex_dump_complete_message_to_file(FILE *out, value_format_t *fmt)
 {
-    unsigned print_as = 1u;         // Default = print as bytes 
+    unsigned print_as = 1u;         // Default = print as bytes
 
     switch (fmt->fmt_type)
     {
@@ -1178,7 +1179,7 @@ static void print_message_as_string_to_file(FILE *out, value_format_t *fmt)
         if ((g_msg.enums[fmt->get_memo].name != NULL) && (g_msg.enums[fmt->get_memo].type == MEMO_TYPE))
         {
             print_from_memo = true;
-            g_msg.value.data_double = g_msg.enums[fmt->get_memo].memo_value;
+            g_msg.value.data_double = g_msg.enums[fmt->get_memo].data.memo_value;
             g_msg.value.data_u64 = (uint64_t)g_msg.value.data_double;
         }
     }
@@ -1395,9 +1396,9 @@ static FILE *get_out_file(value_format_t *fmt)
     {
         if (g_msg.enums[out_file].type == OUT_FILE_TYPE)
         {
-            if (g_msg.enums[out_file].p_file != NULL)
+            if (g_msg.enums[out_file].data.p_file != NULL)
             {
-                out = g_msg.enums[out_file].p_file;
+                out = g_msg.enums[out_file].data.p_file;
             }
             else
             {
@@ -1419,7 +1420,7 @@ static FILE *get_out_file(value_format_t *fmt)
 
 
 /**
- * @brief Report an error if extended data is found 
+ * @brief Report an error if extended data is found
  *        There should be no extended information if the message type is MSGN or MSGX.
  *
  * @param msg_type  The type of the current message.

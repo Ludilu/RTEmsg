@@ -13,11 +13,37 @@
 #include "pch.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#ifdef _WIN32
 #include <Windows.h>
 #include <wchar.h>
+#endif
 #include "rtemsg_config.h"
 #include "utf8_helpers.h"
 #include "main.h"
+
+
+static void sanitize_file_mode(const char *mode, char *sanitized_mode, size_t sanitized_mode_size)
+{
+    size_t idx = 0;
+
+    for (size_t i = 0; mode[i] != '\0'; i++)
+    {
+        if ((mode[i] == 'T') || (mode[i] == 't'))
+        {
+            continue;
+        }
+
+        if (idx + 1 >= sanitized_mode_size)
+        {
+            break;
+        }
+
+        sanitized_mode[idx++] = mode[i];
+    }
+
+    sanitized_mode[idx] = '\0';
+}
 
 
 /**
@@ -36,16 +62,21 @@ FILE *utf8_fopen(const char  *filename, const char *mode)
 {
     size_t filename_len = strlen(filename);
     size_t mode_len = strlen(mode);
+    char sanitized_mode[MAX_FILE_MODE_LENGTH + 1];
 
     if ((filename_len == 0) || (mode_len == 0) || (filename_len >= MAX_FILEPATH_LENGTH))
     {
         return NULL;
     }
 
+    sanitize_file_mode(mode, sanitized_mode, sizeof(sanitized_mode));
+
+#ifdef _WIN32
+
     wchar_t path[MAX_FILEPATH_LENGTH];
     wchar_t wmode[10];
 
-    int len = MultiByteToWideChar(CP_UTF8, 0, mode, (int)mode_len, wmode, 10);
+    int len = MultiByteToWideChar(CP_UTF8, 0, sanitized_mode, (int)strlen(sanitized_mode), wmode, 10);
     wmode[len] = L'\0';
 
     len = MultiByteToWideChar(CP_UTF8, 0, filename, (int)filename_len, path, MAX_FILEPATH_LENGTH);
@@ -57,7 +88,7 @@ FILE *utf8_fopen(const char  *filename, const char *mode)
     {
         // Could not convert the file name to wide characters
         // Try to open the file using the original name
-        file = fopen(filename, mode);
+        file = fopen(filename, sanitized_mode);
     }
     else
     {
@@ -65,11 +96,14 @@ FILE *utf8_fopen(const char  *filename, const char *mode)
 
         if (file == NULL)
         {
-            file = fopen(filename, mode);
+            file = fopen(filename, sanitized_mode);
         }
     }
 
     return file;
+#else
+    return fopen(filename, sanitized_mode);
+#endif
 }
 
 
@@ -82,6 +116,7 @@ FILE *utf8_fopen(const char  *filename, const char *mode)
 
 void utf8_print_string(const char *text, size_t print_length)
 {
+#ifdef _WIN32
     wchar_t wtext[MAX_UTF8_TEXT_LENGTH];
 
     if (print_length > (MAX_UTF8_TEXT_LENGTH - 1))
@@ -111,6 +146,17 @@ void utf8_print_string(const char *text, size_t print_length)
         wtext[converted] = L'\0';
         wprintf(L"%s", wtext);
     }
+#else
+    size_t len = strlen(text);
+
+    if ((len > print_length) && (print_length > 0))
+    {
+        len = print_length;
+    }
+
+    len = utf8_truncate(text, len);
+    printf("%.*s", (int)len, text);
+#endif
 }
 
 
@@ -127,6 +173,7 @@ void utf8_print_string(const char *text, size_t print_length)
 
 int utf8_remove(const char *filename)
 {
+#ifdef _WIN32
     size_t filename_len = strlen(filename);
     int result;
 
@@ -151,6 +198,9 @@ int utf8_remove(const char *filename)
     }
 
     return result;
+#else
+    return remove(filename);
+#endif
 }
 
 
@@ -168,6 +218,7 @@ int utf8_remove(const char *filename)
 
 int utf8_rename(const char *old_name, const char *new_name)
 {
+#ifdef _WIN32
     size_t old_name_len = strlen(old_name);
     size_t new_name_len = strlen(new_name);
     int result;
@@ -199,6 +250,9 @@ int utf8_rename(const char *old_name, const char *new_name)
     }
 
     return result;
+#else
+    return rename(old_name, new_name);
+#endif
 }
 
 
@@ -254,6 +308,7 @@ size_t utf8_truncate(const char *text, size_t length)
 
 int utf8_chdir(const char *dir_name)
 {
+#ifdef _WIN32
     size_t dir_len = strlen(dir_name);
 
     if ((dir_len == 0) || (dir_len >= MAX_FILEPATH_LENGTH))
@@ -266,6 +321,9 @@ int utf8_chdir(const char *dir_name)
     dir_path[len] = L'\0';
 
     return _wchdir(dir_path);
+#else
+    return rte_change_directory(dir_name);
+#endif
 }
 
 /*==== End of file ====*/

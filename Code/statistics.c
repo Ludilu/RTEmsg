@@ -23,6 +23,7 @@
 #include "statistics.h"
 #include "print_message.h"
 #include "print_helper.h"
+#include "utf8_helpers.h"
 
 
 /**
@@ -446,7 +447,7 @@ static void print_number_of_fmt_ids_used(void)
     {
         no_defined = g_msg.hdr_data.topmost_fmt_id;
     }
-    
+
     for (unsigned i = 0; i < no_defined; i++)
     {
         if (g_fmt[i] != NULL)
@@ -480,7 +481,7 @@ static void report_problematic_messages(FILE *out)
         fprintf(out, get_message_text(MSG_STAT_MSGS_WITH_MISSING_FMT),
             g_msg.total_bad_packet_words);
     }
-        
+
     if (g_msg.total_unfinished_words > 0)
     {
         fprintf(out, get_message_text(MSG_STAT_MSGS_WITH_UNFINISHED_WORDS),
@@ -678,16 +679,16 @@ void print_message_frequency_statistics(void)
     FILE *msgs_found = NULL;
     FILE *msgs_not_found = NULL;
 
-    errno_t rez = fopen_s(&msgs_found, RTE_STAT_MSG_COUNTERS_FILE, "w");
+    msgs_found = utf8_fopen(RTE_STAT_MSG_COUNTERS_FILE, "w");
 
-    if (rez != 0)
+    if (msgs_found == NULL)
     {
         report_problem_with_string(FATAL_CANT_CREATE_FILE, RTE_STAT_MSG_COUNTERS_FILE);
     }
 
-    rez = fopen_s(&msgs_not_found, RTE_STAT_MISSING_MSGS_FILE, "w");
+    msgs_not_found = utf8_fopen(RTE_STAT_MISSING_MSGS_FILE, "w");
 
-    if (rez != 0)
+    if (msgs_not_found == NULL)
     {
         report_problem_with_string(FATAL_CANT_CREATE_FILE, RTE_STAT_MISSING_MSGS_FILE);
     }

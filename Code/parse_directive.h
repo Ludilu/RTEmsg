@@ -20,7 +20,7 @@
  * (to account for the null terminator) */
 #define ADVANCE_POSITION(position, x) (*position += sizeof(x) - 1)
 
-__declspec(noinline) void check_stack_space(void);
+RTE_NOINLINE void check_stack_space(void);
 void parse_fmt_file(const char *filepath, parse_handle_t *parent_parse_handle);
 void check_if_the_last_msg_is_empty(parse_handle_t *parse_handle);
 

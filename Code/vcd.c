@@ -10,7 +10,7 @@
  * @author  B. Premzel
  * @brief   Support for the generation of Value change dump (VCD) output files.
  *          This data is used to analyze the timing of the instrumented firmware.
- * 
+ *
  * Various documents:
  *    https://en.wikipedia.org/wiki/Value_change_dump
  *    https://www.mathworks.com/help/hdlverifier/ref/tovcdfile.html
@@ -20,6 +20,7 @@
  ******************************************************************************/
 
 #include "pch.h"
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +28,6 @@
 #include <math.h>
 #include <time.h>
 #include <locale.h>
-#include <windows.h>
 #include "vcd.h"
 #include "errors.h"
 #include "files.h"
@@ -74,9 +74,9 @@ void vcd_reset_structure(void)
  *         The variable definition must start with one of the supported
  *         data type characters: B, W, F, S, contain one equal sign (=) and
  *         have at least one alphanumeric character Name and Variable fields.
- * 
+ *
  * @note   Function is called during format file parsing only.
- * 
+ *
  * @param  variable_text Pointer to the variable format text.
  */
 
@@ -226,9 +226,9 @@ static vcd_type_t vcd_check_variable_type(void)
  * @brief  Check and correct the VCD variable data.
            Find the positions and size of Name and Value fields.
  *         Function is called during message decoding only.
- * 
+ *
  * @param  vcd_type   Type of VCD variable (VCD_TYPE_...).
- * 
+ *
  * @return  Returns true if data is ok and false otherwise.
  */
 
@@ -417,7 +417,7 @@ static void vcd_add_timestamp(FILE* out_file, vcd_file_data_t* p_vcd_data)
     g_msg.timestamp.last_timestamp_ns = timestamp_ns;
 
     // Write the timestamp to the VCD file
-    fprintf(out_file, "#%llu\n", p_vcd_data->last_timestamp_ns);
+    fprintf(out_file, "#%" PRIu64 "\n", p_vcd_data->last_timestamp_ns);
     p_vcd_data->msg_no_of_last_timestamp = g_msg.message_cnt;
 }
 
@@ -459,17 +459,17 @@ static const char* id_string(size_t id)
 
 /**
  * @brief  Process special VCD variable values: Toggle, Pulse and Reset.
- * 
+ *
  * Value == "P" for a bit type variable, generate a pulse (1 ns wide).
  * Value == "T" for a bit type variable, toggle the value.
  * Value == "R" for a bit or float type variable, reset the value to zero.
- * 
+ *
  * @param  p_vcd_data Pointer to VCD file data structure.
  * @param  vcd_type   Type of VCD variable found (VCD_TYPE_...).
  * @param  value_text Pointer to the Value field of the VCD variable.
  * @param  id_text    Pointer to the ID field of the VCD variable.
  * @param var_index   Number of variable to be processed
- * 
+ *
  * @return  Returns true if data should be saved to the VCD file and false otherwise.
  */
 
@@ -566,7 +566,7 @@ static const struct
     const char* name;               // $var name of type
     const unsigned size;            // Value size in bits
 }
-vcd_type_data[VCD_TYPE_LAST] = 
+vcd_type_data[VCD_TYPE_LAST] =
 {
     {"", "", 0},
     {"", "wire", 1},                // Single bit values.
@@ -580,7 +580,7 @@ vcd_type_data[VCD_TYPE_LAST] =
 /**
  * @brief  Print the Value to VCD file and save it's name to the list of variables (if not there already).
  *         Do the special Value processing if required.
- * 
+ *
  * @param  file_idx   Index of output file.
  * @param  vcd_type   Type of VCD variable found (VCD_TYPE_...).
  * @param  name       Pointer to the Name field of the VCD variable.
@@ -616,7 +616,7 @@ static void vcd_save_variable(rte_enum_t file_idx, vcd_type_t vcd_type, const ch
         return;
     }
 
-    FILE* out_file = g_msg.enums[file_idx].p_file;
+    FILE* out_file = g_msg.enums[file_idx].data.p_file;
     vcd_file_data_t* p_vcd_data = g_msg.enums[file_idx].vcd_data;
 
     if ((p_vcd_data == NULL) || (out_file == NULL))
@@ -661,7 +661,7 @@ static void vcd_save_variable(rte_enum_t file_idx, vcd_type_t vcd_type, const ch
 
         if (p_vcd_data->no_variables >= VCD_MAX_VARIABLES_PER_FILE)
         {
-            save_decoding_error(ERR_TOO_MANY_VARIABLES_PER_VCD_FILE, 
+            save_decoding_error(ERR_TOO_MANY_VARIABLES_PER_VCD_FILE,
                 VCD_MAX_VARIABLES_PER_FILE, 0, vcd.string);
             p_vcd_data->discard_excessive_variables = true;
             return;
@@ -708,7 +708,7 @@ static void vcd_save_variable(rte_enum_t file_idx, vcd_type_t vcd_type, const ch
 /**
  * @brief Finalize the VCD variable processing.
  *        Function is called after processing of every VCD variable.
- * 
+ *
  * @param  file_idx Index of output file.
  */
 
@@ -739,7 +739,7 @@ void vcd_finalize_variable(rte_enum_t file_idx)
 
 /**
  * @brief  Add text to the VCD variable string.
- * 
+ *
  * @param  text Pointer to the text to be added.
  */
 
@@ -763,14 +763,14 @@ void vcd_add_text_to_string(const char * text)
 
 
 /**
- * @brief  Add VCD file header information. 
- * 
+ * @brief  Add VCD file header information.
+ *
  * The information includes:
  *    - date and time of VCD file generation
  *    - date and time of binary data file creation
  *    - RTEmsg version and date of compilation
  *    - timescale (1 ns)
- * 
+ *
  * @param  out_file Pointer to the output VCD file.
  */
 
@@ -992,7 +992,7 @@ static int file_copy(FILE* in, FILE* out)
  * @param file_name Pointer to the VCD file name.
  * @param max_name_length Maximum length of signal names in characters.
  *
- * @return Pointer to the opened GTKWave configuration file or NULL 
+ * @return Pointer to the opened GTKWave configuration file or NULL
  *        if error occurred or gtkw file generation is disabled.
  */
 
@@ -1028,18 +1028,12 @@ static FILE* create_gtkw_file(const char* file_name, unsigned max_name_length)
         */
     unsigned screen_width = 1920;       // Default values
     unsigned screen_height = 1080;
-    RECT workArea;
-
-    if (SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0))
-    {
-        screen_width = workArea.right - workArea.left;
-        screen_height = workArea.bottom - workArea.top;
-    }
+    rte_get_desktop_work_area(&screen_width, &screen_height);
 
     screen_height -= 27;
 
     /* Estimate the scaling factor for the GTKWave time axis.
-     * The exact formula depends on the width of the Signals window, as GTKWave 
+     * The exact formula depends on the width of the Signals window, as GTKWave
      * adjusts this width based on the length of the signal names.
      */
     unsigned signals_width = ((max_name_length + 1) * 10 + 114);   // Approx. width in pixels (including borders)
@@ -1058,11 +1052,11 @@ static FILE* create_gtkw_file(const char* file_name, unsigned max_name_length)
     // Write GTKWave configuration file header
     fprintf(gtkw_file, "[*] GTKWave configuration file generated by RTEmsg\n[*]\n");
     fprintf(gtkw_file, "[dumpfile] \"%s\"\n", file_name);
-    fprintf(gtkw_file, "[timestart] %llu\n", g_msg.timestamp.first_timestamp_ns);
+    fprintf(gtkw_file, "[timestart] %" PRIu64 "\n", g_msg.timestamp.first_timestamp_ns);
     fprintf(gtkw_file, "[size] %u %u\n", screen_width, screen_height);
     fprintf(gtkw_file, "[pos] -1 -1\n");            // Default window position
     fprintf(gtkw_file,
-        "*%g %llu -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1\n",
+        "*%g %" PRIu64 " -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1\n",
         scaling_factor, g_msg.timestamp.first_timestamp_ns);
     fprintf(gtkw_file, "[sst_width] 1\n");          // Width of signal selection tree = force minimum required
     fprintf(gtkw_file, "[signals_width] 1\n");      // Width of signals pane = force minimum required
@@ -1076,9 +1070,9 @@ static FILE* create_gtkw_file(const char* file_name, unsigned max_name_length)
 
 /**
  * @brief  Get the maximum signal name width in characters for all variables in the VCD file.
- * 
+ *
  * @param  p_vcd_data Pointer to the VCD file data structure.
- * 
+ *
  * @return  Maximum signal name width in characters.
  */
 
@@ -1138,7 +1132,7 @@ void vcd_finalize_files(void)
             continue;
         }
 
-        FILE* out_file = g_msg.enums[i].p_file;
+        FILE* out_file = g_msg.enums[i].data.p_file;
         vcd_file_data_t* p_vcd_data = g_msg.enums[i].vcd_data;
 
         if ((out_file == NULL) || (p_vcd_data == NULL))
@@ -1147,7 +1141,7 @@ void vcd_finalize_files(void)
         }
 
         fclose(out_file);
-        g_msg.enums[i].p_file = NULL;
+        g_msg.enums[i].data.p_file = NULL;
 
         // Rename the VCD file to TEMP
         char temp_vcd_file_name[MAX_FILEPATH_LENGTH + 1];
@@ -1207,7 +1201,7 @@ void vcd_finalize_files(void)
 
 /**
  * @brief Checks if the filename ends with .VCD or .vcd extension, ignoring case.
- * 
+ *
  * @param filename The filename string.
  * @return true if the extension is .vcd (case-insensitive); false otherwise.
  */
@@ -1225,7 +1219,11 @@ bool is_a_vcd_file(const char* filename)
     // Pointer to the last 4 characters (the expected extension)
     const char* extension = filename + len - required_length;
 
-    if (_strcmpi(extension, ".vcd") == 0)
+#ifdef _WIN32
+    if (_stricmp(extension, ".vcd") == 0)
+#else
+    if (strcasecmp(extension, ".vcd") == 0)
+#endif
     {
         return true;
     }
@@ -1245,7 +1243,7 @@ void vcd_print_double(const char* fmt_string, double value)
 {
     /* To circumvent GTKWave's limitation in handling non-normal floating-point values (such as NaN or INF),
      * the software substitutes these values with a numerical placeholder: 9.99e99 (instead of a random value
-     * that appears on the graph otherwise). 
+     * that appears on the graph otherwise).
      * This substitution ensures the VCD viewer can display the data without errors. */
 
      // Check if the value is not normal, i.e. not an infinity, subnormal, not-a-number or zero
@@ -1413,8 +1411,8 @@ void vcd_write_pulse_var_data(void)
         }
 
         p_vcd_file->last_timestamp_ns++;    // Add a '0' value 1 ns after the '1' was emitted
-        fprintf(g_msg.enums[idx].p_file, "#%llu\n", p_vcd_file->last_timestamp_ns);
-        fprintf(g_msg.enums[idx].p_file, "0%s\n", p_vcd_file->pulse_variable_id);
+        fprintf(g_msg.enums[idx].data.p_file, "#%" PRIu64 "\n", p_vcd_file->last_timestamp_ns);
+        fprintf(g_msg.enums[idx].data.p_file, "0%s\n", p_vcd_file->pulse_variable_id);
 
         // Reset the pulse status after writing
         p_vcd_file->pulse_variable_id[0] = '\0';
