@@ -15,6 +15,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS 1   // Disable deprecation warnings
 
+#include "portability.h"
 #include <stdio.h>
 #include <stdbool.h>
 #include "rtemsg_config.h"
@@ -67,7 +68,7 @@ typedef struct _param_t
 
 typedef struct _rte_files_t
 {
-    wchar_t *start_folder;          /*!< Pointer to the folder from which the software has been started */
+    char *start_folder;             /*!< Pointer to the folder from which the software has been started */
 
     // Working FILE pointers (files used during binary data file parsing)
     FILE *rte_data;                 /*!< Pointer to the data logging structure  - loaded from binary file */
@@ -194,13 +195,13 @@ typedef struct _enum_data_t
     {
         char *filter_description;    /*!< FILTER:   pointer to filter description (NULL if not specified) */
         FILE *p_file;                /*!< OUT_FILE: pointer to the file structure */
-        char *in_file_txt;           /*!< IN_FILE and Y_TEXT_TYPE:  
+        char *in_file_txt;           /*!< IN_FILE and Y_TEXT_TYPE:
                                         pointer to the first text loaded from the file or
-                                        to text defined with {text1|text2|...} 
+                                        to text defined with {text1|text2|...}
                                         See the description of function 'get_selected_text()' for
                                         how the data is formatted - how it has to be prepared */
         double memo_value;           /*!< MEMO:     memorizing of temporary values */
-    };
+    } data;
 } enum_data_t;
 
 
@@ -209,7 +210,7 @@ typedef struct _enum_data_t
 */
 typedef struct _value_t
 {
-    double   data_double;     //!< Currently processed (printed) value as floating point 
+    double   data_double;     //!< Currently processed (printed) value as floating point
     int64_t  data_i64;        //!< The same value as a 64-bit integer
     uint64_t data_u64;        //!< The same value as a 64-bit unsigned integer
     uint64_t data_null;       //!< Zeroes - in case the uint64 is printed as a zero terminated string
@@ -225,7 +226,7 @@ typedef struct _value_t
 typedef struct _error_log_t
 {
     uint32_t error_number;    //!< Error number which has been detected during decoding
-    uint32_t value_number;    //!< Consecutive number of executed fprintf for a single message 
+    uint32_t value_number;    //!< Consecutive number of executed fprintf for a single message
                               //!< (PRINT_PLAIN_TEXT not counted)
     uint32_t data1;           //!< Additional data saved
     uint32_t data2;           //!< Additional data saved
@@ -291,7 +292,7 @@ typedef struct _rte_msg_t
 
     /* Enumerated value types: IN_FILE, OUT_FILE, MEMO, FILTER, inline selected text definition */
     enum_data_t enums[MAX_ENUMS + 1u];  /*!< Enumerated values: filters, memos, in_files and out_files.
-                                         *   The first 32 entries are reserved for the 32 filters. The following 
+                                         *   The first 32 entries are reserved for the 32 filters. The following
                                          *   ones are MEMO, IN_FILE, OUT_FILE, and selected text definitions */
     uint32_t enums_found;               /*!< Number of enums found in the format definition file(s) */
     uint32_t filter_enums;              /*!< Number of filters (up to 32 may be defined) */
@@ -302,10 +303,10 @@ typedef struct _rte_msg_t
 
     /* Error counting during a single message decoding */
     uint32_t unfinished_words;          /*!< Number of consecutive words with a value of 0xFFFFFFFF.
-                                         *   Such a value indicates that the default value in the buffer was not 
+                                         *   Such a value indicates that the default value in the buffer was not
                                          * overwritten with the logged one during writing to the circular buffer.*/
     uint32_t bad_packet_words;          /*!< Number of DATA words in a packet without a FMT word */
-    
+
     /* Error information logged during a single message decoding */
     error_log_t error_log[MAX_ERRORS_IN_SINGLE_MESSAGE];
     uint32_t msg_error_counter;         /*!< Errors detected during single message decoding */

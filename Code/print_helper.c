@@ -133,10 +133,10 @@ const char *strip_newlines_and_shorten_string(const char *text, char spec_char)
 /**
  * @brief Prints decoding errors to the specified output file.
  *        Errors are logged only after the complete decoding of an individual message.
- * 
+ *
  * @param out  Pointer to the output file.
  */
- 
+
 static void print_decoding_errors_to_file(FILE *out)
 {
     if (out == NULL)
@@ -213,7 +213,7 @@ void print_decoding_errors(void)
  * @param out       Pointer to the output file.
  * @param msg_no    Message number.
  */
- 
+
 void print_message_number(FILE *out, uint32_t msg_no)
 {
     const char *string_text = "N%05u";
@@ -233,7 +233,7 @@ void print_message_number(FILE *out, uint32_t msg_no)
  * @param out       Pointer to the file where the timestamp will be printed.
  * @param timestamp Timestamp value in seconds.
  */
- 
+
 void print_timestamp(FILE *out, double timestamp)
 {
     fprintf(out, g_msg.param.timestamp_print, timestamp * g_msg.param.time_multiplier);
@@ -322,9 +322,9 @@ void dump_filter_names_to_file(void)
         const char *name = ""; // Default to an empty string if no name or description is available.
 
         // Use filter description if available, otherwise use the filter name
-        if (g_msg.enums[i].filter_description != NULL)
+        if (g_msg.enums[i].data.filter_description != NULL)
         {
-            name = g_msg.enums[i].filter_description;
+            name = g_msg.enums[i].data.filter_description;
         }
         else if (g_msg.enums[i].name != NULL)
         {

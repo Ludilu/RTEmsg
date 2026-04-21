@@ -17,7 +17,7 @@
 
 void report_parsing_error(parse_handle_t *parse_handle, error_msg_t parsing_error, const char *err_context);
 
-__declspec(noreturn)
+RTE_NORETURN
 void catch_parsing_error(parse_handle_t *parse_handle, error_msg_t parsing_error, const char *err_context);
 
 #endif // PARSE_ERROR_REPORTING_H

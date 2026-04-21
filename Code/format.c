@@ -14,7 +14,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <direct.h>
 #include "main.h"
 #include "errors.h"
 #include "format.h"
@@ -215,7 +214,7 @@ static void print_indexed_text(FILE *out, unsigned index, const char *text)
 /**
  * @brief Retrieves the name of an enumerated type. Returns an empty string if not defined.
  *        The function returns names for non-filter enums.
- * 
+ *
  * @param index Index used for g_msg.enums[].
  *
  * @return      Name of the enumerated type.
@@ -295,12 +294,12 @@ static void print_single_value_formatting_data(FILE *out, value_format_t *p_val_
             break;
     }
 
-    print_indexed_text(out, p_val_fmt->fmt_type, 
+    print_indexed_text(out, p_val_fmt->fmt_type,
         "PLAIN_TEXT,TEXT,SELECTED_TEXT,UINT64,INT64,DOUBLE,BINARY,TIMESTAMP,"
         "dTIMESTAMP,MSG_NO,HEX1U,HEX2U,HEX4U,HEX1L,HEX2L,HEX4L,BIN_TO_FILE,DATE,MSG_NAME"
         );
     fprintf(out, "%u\t%u\t", p_val_fmt->bit_address, p_val_fmt->data_size);
-    fprintf(out, "%s\t%s\t%s\t", 
+    fprintf(out, "%s\t%s\t%s\t",
         get_enums_name(p_val_fmt->get_memo),
         get_enums_name(p_val_fmt->put_memo),
         get_enums_name(p_val_fmt->in_file)

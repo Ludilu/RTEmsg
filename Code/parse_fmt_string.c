@@ -123,7 +123,7 @@ static void check_fmt_type_data(parse_handle_t *parse_handle, char fmt_char)
     }
 
     // Skip address & size check if the data type has a zero size (e.g., for "%t")
-    if ((current_format->data_size == 0) && 
+    if ((current_format->data_size == 0) &&
         ! ((current_format->fmt_type == PRINT_STRING)
             && (parse_handle->p_current_message->msg_type == TYPE_MSG0_8))  // Known message length
         )
@@ -525,7 +525,7 @@ static void save_the_indexed_text_line(char **position, parse_handle_t *parse_ha
 
     g_msg.enums[g_msg.enums_found].name = "#Y_TEXT";
     g_msg.enums[g_msg.enums_found].type = Y_TEXT_TYPE;
-    g_msg.enums[g_msg.enums_found].in_file_txt = duplicate_string(buff);
+    g_msg.enums[g_msg.enums_found].data.in_file_txt = duplicate_string(buff);
     parse_handle->current_format->in_file = (rte_enum_t)g_msg.enums_found;
     g_msg.enums_found++;
     g_msg.fmt_ids_defined++;
@@ -634,7 +634,7 @@ static void parse_scaling_spec(char **position, parse_handle_t *parse_handle,
 
             p = stop_char;
             //lint -fallthrough
-            
+
         case '*':
             if (*p == '*')
             {
@@ -909,7 +909,7 @@ static void parse_square_brackets(char **position, parse_handle_t *parse_handle)
  * @param position      Pointer to the current position in the text being parsed.
  * @param parse_handle  Pointer to the handle of the currently parsed file.
  */
- 
+
 static void parse_special_format(char **position, parse_handle_t *parse_handle)
 {
     bool found_square_brackets = false;
@@ -1065,7 +1065,7 @@ static void finalize_substring(char *fmt_substring, size_t index, char **p, pars
             // Stop appending after the first escape character or '%'
             break;
         }
-        
+
         // No additional text allowed after special format types
         if (special_format)
         {
@@ -1195,7 +1195,7 @@ void separate_fmt_strings(char *buffer, parse_handle_t *parse_handle)
         parse_handle->current_format->data_size = 0;
         parse_handle->current_format->fmt_type = PRINT_PLAIN_TEXT;
         parse_handle->current_format->bit_address = parse_bit_address;
-        
+
         if (IS_A_VCD_TYPE(parse_handle->special_fmt))
         {
             parse_handle->current_format->special_fmt = parse_handle->special_fmt;

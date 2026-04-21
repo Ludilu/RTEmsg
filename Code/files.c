@@ -14,9 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <direct.h>
 #include <time.h>
-#include <windows.h>
 #include "main.h"
 #include "errors.h"
 #include "files.h"
@@ -33,8 +31,8 @@
 
 int64_t get_file_size(FILE *fp)
 {
-    _fseeki64(fp, 0, SEEK_END);
-    int64_t size = (int64_t)ftell(fp);
+    rte_seek_file_end(fp);
+    int64_t size = rte_tell_file(fp);
     rewind(fp);
     return size;
 }
@@ -47,7 +45,7 @@ int64_t get_file_size(FILE *fp)
 void jump_to_start_folder(void)
 {
     // Jump back to the start folder
-    if (_wchdir(g_msg.file.start_folder) != 0)
+    if (rte_change_directory(g_msg.file.start_folder) != 0)
     {
         report_error_and_exit(get_message_text(FATAL_CANT_CHANGE_TO_START_FOLDER),
             EXIT_FATAL_ERR_START_FOLDER);
@@ -98,7 +96,7 @@ void open_output_folder(void)
 
 void setup_working_folder_info(void)
 {
-    g_msg.file.start_folder = _wgetcwd(NULL, 0);
+    g_msg.file.start_folder = rte_get_current_directory();
 
     if (g_msg.file.start_folder == NULL)
     {
@@ -106,24 +104,97 @@ void setup_working_folder_info(void)
     }
 
     // Set current_folder to the folder from where the software has been started
-    char *app_folder;
+    char app_folder[MAX_FILEPATH_LENGTH];
 
-    if (_get_pgmptr(&app_folder) != 0)
+    if (rte_get_program_path(app_folder, sizeof(app_folder)) != 0)
     {
         report_error_and_exit(TXT_CANT_GET_APP_START_FOLDER, EXIT_FATAL_ERR_PGMPTR);
     }
 
     char *chr_position = strrchr(app_folder, '\\');
+    char *slash_position = strrchr(app_folder, '/');
+
+    if ((slash_position != NULL) && ((chr_position == NULL) || (slash_position > chr_position)))
+    {
+        chr_position = slash_position;
+    }
 
     if (chr_position != NULL)
     {
-        *chr_position = 0;      // Delete the "\\RTEmsg.exe" at the end
+        *chr_position = 0;      // Delete the executable name at the end
     }
 
     // Jump to the RTEmsg app folder - the file with message strings is located there
-    if (_chdir(app_folder) != 0)
+    if (rte_change_directory(app_folder) != 0)
     {
         report_error_and_exit(TXT_CANT_JUMP_TO_APP_FOLDER, EXIT_FATAL_ERR_PGMFOLDER);
+    }
+}
+
+
+void close_all_open_files(void)
+{
+    FILE *files_to_close[] = {
+        g_msg.file.rte_data,
+        g_msg.file.main_log,
+        g_msg.file.error_log,
+        g_msg.file.statistics_log,
+        g_msg.file.timestamps,
+    };
+
+    for (size_t i = 0; i < (sizeof(files_to_close) / sizeof(files_to_close[0])); i++)
+    {
+        FILE *file = files_to_close[i];
+        if (file == NULL)
+        {
+            continue;
+        }
+
+        bool already_closed = false;
+        for (size_t j = 0; j < i; j++)
+        {
+            if (files_to_close[j] == file)
+            {
+                already_closed = true;
+                break;
+            }
+        }
+
+        if (!already_closed)
+        {
+            fclose(file);
+        }
+    }
+
+    g_msg.file.rte_data = NULL;
+    g_msg.file.main_log = NULL;
+    g_msg.file.error_log = NULL;
+    g_msg.file.statistics_log = NULL;
+    g_msg.file.timestamps = NULL;
+
+    for (size_t i = 0; i < g_msg.enums_found; i++)
+    {
+        if ((g_msg.enums[i].type != OUT_FILE_TYPE) || (g_msg.enums[i].data.p_file == NULL))
+        {
+            continue;
+        }
+
+        bool already_closed = false;
+        for (size_t j = 0; j < i; j++)
+        {
+            if ((g_msg.enums[j].type == OUT_FILE_TYPE) && (g_msg.enums[j].data.p_file == g_msg.enums[i].data.p_file))
+            {
+                already_closed = true;
+                break;
+            }
+        }
+
+        if (!already_closed)
+        {
+            fclose(g_msg.enums[i].data.p_file);
+        }
+
+        g_msg.enums[i].data.p_file = NULL;
     }
 }
 
@@ -138,7 +209,7 @@ void create_error_file(void)
     // Create Error.log in the output folder
     open_output_folder();
 
-    g_msg.file.error_log = fopen(RTE_ERR_FILE, "w");
+    g_msg.file.error_log = utf8_fopen(RTE_ERR_FILE, "w");
 
     if (g_msg.file.error_log == NULL)
     {
@@ -161,7 +232,7 @@ void create_main_log_file(void)
     open_output_folder();
 
     // Create Main.log
-    g_msg.file.main_log = fopen(RTE_MAIN_LOG_FILE, "w");
+    g_msg.file.main_log = utf8_fopen(RTE_MAIN_LOG_FILE, "w");
 
     if (g_msg.file.main_log == NULL)
     {
@@ -170,7 +241,7 @@ void create_main_log_file(void)
 
 #if defined STREAM_BUFF_SIZE
     /* Allocate a buffer for the stream; a larger buffer may not significantly increase write speed
-     * The setvbuf function optimizes I/O performance by controlling stream buffering, reducing 
+     * The setvbuf function optimizes I/O performance by controlling stream buffering, reducing
      * frequent operations and improving efficiency.
      */
     char *stream_buffer = allocate_memory(STREAM_BUFF_SIZE, "strBuff");
@@ -178,7 +249,7 @@ void create_main_log_file(void)
 #endif
 
     // Create main statistics log file
-    g_msg.file.statistics_log = fopen(RTE_STAT_MAIN_FILE, "w");
+    g_msg.file.statistics_log = utf8_fopen(RTE_STAT_MAIN_FILE, "w");
 
     if (g_msg.file.statistics_log == NULL)
     {
@@ -195,8 +266,8 @@ void create_main_log_file(void)
 
 void remove_file(const char *file_name)
 {
-    _set_errno(0);
-        int result = utf8_remove(file_name);
+    rte_clear_errno();
+    int result = utf8_remove(file_name);
 
     if (result == -1)
         {

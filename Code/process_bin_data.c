@@ -36,7 +36,7 @@
  *          false - if additional data might be in the next packet.
  */
 
-__inline bool message_complete(unsigned no_words)
+static inline bool message_complete(unsigned no_words)
 {
     if (no_words < 5u)
     {
@@ -156,7 +156,7 @@ static uint32_t get_packet_length(uint32_t fmt_id)
  * @return Result as defined by the enum 'asm_msg_t'.
  */
 
-__inline asm_msg_t process_the_message_packet(unsigned no_words, uint32_t data)
+static inline asm_msg_t process_the_message_packet(unsigned no_words, uint32_t data)
 {
     // Process the data contained in the FMT word
     g_msg.fmt_id = data >> g_msg.hdr_data.fmt_id_shift;
@@ -177,7 +177,7 @@ __inline asm_msg_t process_the_message_packet(unsigned no_words, uint32_t data)
     if (no_words > msg_len)                     // Message length over max. defined by the programmer?
     {
         // Check if just a few words have to be skipped and the remainder is a valid message
-        // with a defined length (number of data words). 
+        // with a defined length (number of data words).
         g_msg.bad_packet_words = no_words - msg_len;    // Skip the probably invalid data
         g_msg.index -= msg_len;                         // and process the remainder again
         return BAD_BLOCK;
@@ -229,10 +229,10 @@ __inline asm_msg_t process_the_message_packet(unsigned no_words, uint32_t data)
  * @return Number of unfinished words skipped.
  */
 
-__inline unsigned skip_unfinished_words(void)
+static inline unsigned skip_unfinished_words(void)
 {
     unsigned no_unfinished = 0;
-    
+
     for (uint32_t idx = g_msg.index; idx < g_msg.in_size; idx++)
     {
         if (g_msg.rte_buffer[idx] != 0xFFFFFFFFuL)
@@ -259,7 +259,7 @@ __inline unsigned skip_unfinished_words(void)
  * @return Result as defined by the enum 'asm_msg_t'.
  */
 
-__inline static asm_msg_t find_fmt_word(unsigned *packet_words, uint32_t *p_data)
+static inline asm_msg_t find_fmt_word(unsigned *packet_words, uint32_t *p_data)
 {
     uint32_t data;
 
@@ -313,9 +313,9 @@ __inline static asm_msg_t find_fmt_word(unsigned *packet_words, uint32_t *p_data
 
 /**
  * @brief  Checks the last (unfinished) message in the buffer.
- * 
+ *
  * @param packet_words  Number of words found in the last packet.
- * 
+ *
  * @return Result as defined by the enum 'asm_msg_t'.
  */
 
@@ -342,7 +342,7 @@ static asm_msg_t check_last_message_in_the_buffer(unsigned packet_words)
 /**
  * @brief  Determines if the next packet is a continuation of the message currently being composed.
  *         Subpackets belonging to the same message share the same timestamp and format ID.
- * 
+ *
  * @param timestamp_and_fmt_index Timestamp and format ID of the message currently processed.
  *
  * @return true if the following data packet belongs to the same message.
@@ -382,12 +382,12 @@ static bool next_packet_is_the_continuation_of_the_message(uint32_t timestamp_an
 
 
 /**
- * @brief  Assembles a message from one or more message blocks sharing the same 
- *         timestamp and format ID. 
+ * @brief  Assembles a message from one or more message blocks sharing the same
+ *         timestamp and format ID.
  *         Data words (DATA) and format/timestamp words (FMT) written to the buffer
- *         using RTEdbg library functions are reassembled here into messages 
+ *         using RTEdbg library functions are reassembled here into messages
  *         identical to those recorded in the embedded system.
- *         The assembled message is stored in g_msg.assembled_msg, with its size 
+ *         The assembled message is stored in g_msg.assembled_msg, with its size
  *         in g_msg.asm_words.
  *
  * @return Result as defined by the enum 'asm_msg_t'
@@ -515,7 +515,7 @@ void debug_print_message_hex(uint32_t start_index)
 
     fprintf(out, "\n  >>> ");
     print_message_number(out, g_msg.message_cnt);
-    fprintf(out, " %s: %llu ", get_message_text(MSG_INDEX),
+    fprintf(out, " %s: %zu ", get_message_text(MSG_INDEX),
         start_index + g_msg.already_processed_data);
 
     if ((g_msg.unfinished_words == 0) && (g_msg.bad_packet_words == 0))
@@ -579,7 +579,7 @@ void debug_print_message_info(uint32_t last_index)
     {
         fprintf(g_msg.file.main_log, "\n  >>>");
         print_message_number(g_msg.file.main_log, g_msg.message_cnt);
-        fprintf(g_msg.file.main_log, ", %s: %llu",
+        fprintf(g_msg.file.main_log, ", %s: %zu",
             get_message_text(MSG_INDEX), last_index + g_msg.already_processed_data);
     }
 }
@@ -590,7 +590,7 @@ void debug_print_message_info(uint32_t last_index)
  *        Ensures at least two messages remain in the buffer, considering the maximum possible message size.
  */
 
-__inline static void load_additional_data(void)
+static inline void load_additional_data(void)
 {
     if (!g_msg.complete_file_loaded)
     {
@@ -670,7 +670,7 @@ static void report_warning_if_error_found_in_first_message(uint32_t last_error_c
     if ((g_msg.message_cnt == g_msg.error_warning_in_msg) &&
         (g_msg.total_errors != last_error_counter))
     {
-        fprintf(g_msg.file.main_log, 
+        fprintf(g_msg.file.main_log,
             get_message_text(MSG_WARN_ERROR_IN_FIRST_SNAPSHOT_MSG));
     }
 

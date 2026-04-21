@@ -145,12 +145,12 @@ void load_data_block(void)
  *        The buffer index must be initialized to zero.
  *
  * @param file_size  Size of the binary file in bytes, excluding the rtedbg_header.
- * 
+ *
  * NOTE: This function is untested as the tools for streaming data collection
  *       are still under development. The file format specification may change.
  */
 
-static void load_streaming_log_data(__int64 file_size)
+static void load_streaming_log_data(int64_t file_size)
 {
     if (file_size < 4)
     {
@@ -289,7 +289,7 @@ static uint32_t check_data_at_end_of_circular_buffer(uint32_t buffer_size)
  *
  * @param buffer  Pointer to the binary data buffer.
  * @param size    Size of the buffer.
- * 
+ *
  * @return The number of words that contain 0xFFFFFFFF.
  */
 
@@ -466,7 +466,7 @@ static void load_post_mortem_data(int64_t data_size)
             skip_at_start = 4 - skip_at_end;
         }
     }
-    
+
     load_post_mortem_data_part1(buffer_size - last_index - skip_at_end, last_index);
     load_post_mortem_data_part2(last_index - skip_at_start, skip_at_start);
 }
@@ -638,7 +638,7 @@ static void check_logging_mode(void)
 void load_and_check_rtedbg_header(void)
 {
     jump_to_start_folder();
-    
+
     if (g_msg.param.data_file_name == NULL)
     {
         report_fatal_error_and_exit(FATAL_NO_BIN_FILE, NULL, 0);
@@ -688,7 +688,7 @@ void load_and_check_rtedbg_header(void)
 
     /* Use the last timestamp frequency value (from data logging structure).
      * For applications that switch frequency often the exact frequency is not
-     * known for the first part of decoding - until the first message with 
+     * known for the first part of decoding - until the first message with
      * frequency information (MSG1_SYS_TSTAMP_FREQUENCY) is found in the buffer. */
     g_msg.timestamp.current_frequency = g_msg.rte_header.timestamp_frequency;
 
@@ -815,9 +815,9 @@ static void print_filter_info(void)
 
         const char *name = "";
 
-        if (g_msg.enums[i].filter_description != NULL)
+        if (g_msg.enums[i].data.filter_description != NULL)
         {
-            name = g_msg.enums[i].filter_description;
+            name = g_msg.enums[i].data.filter_description;
         }
         else if (g_msg.enums[i].name != NULL)
         {

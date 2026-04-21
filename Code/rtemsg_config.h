@@ -48,8 +48,8 @@
 #define MAX_NO_OF_CHARS_PRINTED_FOR_ADDINFO_REPORTING 80 // Max. additional info reported during the fmt decoding
 #define MAX_NAME_LENGTH             100   // Size limit for the file and filter names and filter descriptors
 #define MAX_HEADGUARD_LENGTH         80   // Max. size of automatically generated headguard for the fmt header files
-#define MAX_FILENAME_LENGTH   _MAX_PATH   // Maximal length of a file name
-#define MAX_FILEPATH_LENGTH   _MAX_PATH   // Support for large paths is not yet implemented
+#define MAX_FILENAME_LENGTH   RTE_MAX_PATH   // Maximal length of a file name
+#define MAX_FILEPATH_LENGTH   RTE_MAX_PATH   // Support for large paths is not yet implemented
 #define CMP_BUFSIZ                 2048   // Size of buffers for the file compare
 #define MAX_IN_FILE_SIZE      10000000LL  // Maximal IN_FILE() size
 #define MAX_UTF8_TEXT_LENGTH MAX_FILEPATH_LENGTH   // Max. length of UTF-8 text (for string conversion)

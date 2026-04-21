@@ -13,7 +13,6 @@
 #include "pch.h"
 #include <time.h>
 #include "parse_file_handling.h"
-#include <windows.h>
 #include "files.h"
 #include "utf8_helpers.h"
 #include "main.h"
@@ -120,7 +119,7 @@ static bool open_file(const char *filename, FILE **file)
             break;
         }
 
-        Sleep(10);      // Wait before retrying
+        rte_sleep_ms(10);      // Wait before retrying
     }
     while ((clock() - start_time) <= MAX_FILE_EACCES_TIME);
 
@@ -337,7 +336,7 @@ static void check_and_replace_header_file(parse_handle_t *parse_handle)
     char header_file_name[MAX_FILENAME_LENGTH];
     snprintf(header_file_name, MAX_FILENAME_LENGTH, "%s.h", parse_handle->fmt_file_path);
 
-    _set_errno(0);
+    rte_clear_errno();
     FILE *header_file = utf8_fopen(header_file_name, "r");
 
     if (header_file != NULL)
@@ -413,7 +412,7 @@ static void check_and_replace_header_file(parse_handle_t *parse_handle)
 void check_and_replace_work_file(parse_handle_t *parse_handle)
 {
     open_format_folder();
-    _set_errno(0);
+    rte_clear_errno();
 
     // Use a different procedure if the output of a .fmt file is written to the header
     if (parse_handle->write_output_to_header)
@@ -461,7 +460,7 @@ void check_and_replace_work_file(parse_handle_t *parse_handle)
         {
             int err = errno;    // Preserve the error code for 'report_parsing_error()'
             utf8_remove(parse_handle->work_file_name); // Attempt to remove the work file
-            _set_errno(err);
+            rte_set_errno_value(err);
 
             report_parsing_error(parse_handle->p_parse_parent,
                 ERR_PARSE_FILE_FMT_CANNOT_RENAME, backup_file_name);
@@ -509,7 +508,7 @@ void read_file_to_indexed_text(const char *filename, parse_handle_t *parse_handl
         catch_parsing_error(parse_handle, ERR_PARSE_IN_FILE_SELECT_ERROR, filename);
     }
 
-    __int64 file_size = get_file_size(file);
+    int64_t file_size = get_file_size(file);
 
     if ((file_size < 0) || (file_size > MAX_IN_FILE_SIZE))
     {
@@ -559,7 +558,7 @@ void read_file_to_indexed_text(const char *filename, parse_handle_t *parse_handl
     }
 
     *pos = 0;
-    g_msg.enums[g_msg.enums_found].in_file_txt = (char *)str;
+    g_msg.enums[g_msg.enums_found].data.in_file_txt = (char *)str;
     fclose(file);
 }
 

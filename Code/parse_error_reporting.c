@@ -12,7 +12,6 @@
  ******************************************************************************/
 
 #include "pch.h"
-#include <Windows.h>
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
@@ -63,45 +62,17 @@ static void print_full_path_info(const char *file_name)
 {
     open_format_folder();
 
-    char full_name[_MAX_PATH];
+    char full_name[MAX_FILEPATH_LENGTH];
 
-    if (_fullpath(full_name, file_name, _MAX_PATH) == NULL)
+    if (rte_get_full_path(file_name, full_name, sizeof(full_name)) != 0)
     {
         // Fallback to short filename if full path retrieval fails
         utf8_print_string(file_name, 0);
         fprintf(g_msg.file.error_log, "%s/%s", g_msg.param.fmt_folder, file_name);
         return;
     }
-    
-    if (g_msg.param.codepage_utf8)
-    {
-        utf8_print_string(full_name, 0);
-    }
-    else
-    {
-        wchar_t w_file_name[_MAX_PATH];
-        wchar_t w_full_name[_MAX_PATH];
-        int converted = MultiByteToWideChar(CP_UTF8, 0,
-            file_name, (int)strlen(file_name), w_file_name, (int)_MAX_PATH);
-        w_file_name[converted] = L'\0';
 
-        if (converted != 0)
-        {
-            if (_wfullpath(w_full_name, w_file_name, _MAX_PATH) == NULL)
-            {
-                converted = 0;
-            }
-        }
-
-        if (converted != 0)
-        {
-            wprintf(L"%s", w_full_name);
-        }
-        else
-        {
-            utf8_print_string(file_name, 0);
-        }
-    }
+    utf8_print_string(full_name, 0);
 
     fprintf(g_msg.file.error_log, "%s/%s", g_msg.param.fmt_folder, full_name);
 }
@@ -124,15 +95,7 @@ static void print_error_description(const char *err_descr, int err_number)
 
     if (err_number)
     {
-        if (g_msg.param.codepage_utf8)
-        {
-            printf(" [%s]", strerror(err_number));
-        }
-        else
-        {
-            wprintf_s(L" [%s]", _wcserror(err_number));
-        }
-
+        printf(" [%s]", strerror(err_number));
         fprintf(g_msg.file.error_log, " [%s]", strerror(err_number));
     }
 }
@@ -227,8 +190,7 @@ void report_parsing_error(parse_handle_t *parse_handle, error_msg_t parsing_erro
 
     if (g_msg.param.codepage_utf8)
     {
-        SetConsoleOutputCP(CP_UTF8);
-        SetConsoleCP(CP_UTF8);
+        rte_set_console_utf8();
     }
 
     if ((parsing_error >= TOTAL_ERRORS) || (parsing_error < ERR_PARSE_UNKNOWN))
@@ -258,7 +220,7 @@ void report_parsing_error(parse_handle_t *parse_handle, error_msg_t parsing_erro
 
     g_msg.total_errors++;
     g_msg.error_counter[parsing_error]++;   // Count errors
-    _set_errno(0);
+    rte_clear_errno();
 }
 
 
@@ -266,7 +228,7 @@ void report_parsing_error(parse_handle_t *parse_handle, error_msg_t parsing_erro
  * @brief See the description for the 'report_parsing_error()' function.
  */
 
-__declspec(noreturn)
+RTE_NORETURN
 void catch_parsing_error(parse_handle_t *parse_handle, error_msg_t parsing_error, const char *err_context)
 {
     report_parsing_error(parse_handle, parsing_error, err_context);

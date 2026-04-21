@@ -22,6 +22,7 @@ void open_output_folder(void);
 void open_format_folder(void);
 void jump_to_start_folder(void);
 void setup_working_folder_info(void);
+void close_all_open_files(void);
 int64_t get_file_size(FILE *fp);
 char *prepare_folder_name(char *name, unsigned error_code);
 void remove_old_files(void);

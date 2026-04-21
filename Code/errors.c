@@ -31,7 +31,7 @@
  * @param exit_code Value for the exit() function
  */
 
-__declspec(noreturn) void report_error_and_exit(const char *error_message, int exit_code)
+RTE_NORETURN void report_error_and_exit(const char *error_message, int exit_code)
 {
     char text[MAX_UTF8_TEXT_LENGTH];
 
@@ -41,12 +41,12 @@ __declspec(noreturn) void report_error_and_exit(const char *error_message, int e
 
     if (errno != 0)
     {
-        wprintf_s(L" [%s]", _wcserror(errno));
+        printf(" [%s]", strerror(errno));
     }
 
-    wprintf(L"\n\n");
+    printf("\n\n");
 
-    _fcloseall();
+    close_all_open_files();
     exit(exit_code);
 }
 
@@ -59,7 +59,7 @@ __declspec(noreturn) void report_error_and_exit(const char *error_message, int e
  * @param msg_extension  Additional error information
  */
 
-__declspec(noreturn) void report_error_and_show_instructions(const char *error_message, const char *msg_extension)
+RTE_NORETURN void report_error_and_show_instructions(const char *error_message, const char *msg_extension)
 {
     char text[MAX_UTF8_TEXT_LENGTH];
 
@@ -94,7 +94,7 @@ __declspec(noreturn) void report_error_and_show_instructions(const char *error_m
  *                          If this parameter is ~1uLL, then display operating system error info also.
  */
 
-__declspec(noreturn) void report_fatal_error_and_exit(uint32_t error_code,
+RTE_NORETURN void report_fatal_error_and_exit(uint32_t error_code,
     const char *additional_text, size_t additional_data)
 {
     if ((error_code >= TOTAL_ERRORS) || (error_code < FIRST_FATAL_ERROR))
@@ -147,12 +147,12 @@ __declspec(noreturn) void report_fatal_error_and_exit(uint32_t error_code,
                 fprintf(g_msg.file.error_log, ": %s", strerror(errno));
             }
 
-            wprintf_s(L": %s", _wcserror(errno));
+            printf(": %s", strerror(errno));
         }
     }
 
-    wprintf(L"\n");
-    _fcloseall();
+    printf("\n");
+    close_all_open_files();
     exit(error_code);
 }
 
@@ -215,7 +215,7 @@ void report_problem_with_string(uint32_t error_code, const char *name)
 
     g_msg.total_errors++;
     g_msg.error_counter[error_code]++;   // Count errors
-    _set_errno(0);
+    rte_clear_errno();
 }
 
 
@@ -357,7 +357,7 @@ void report_problem(uint32_t error_code, int additional_data)
 
     g_msg.total_errors++;
     g_msg.error_counter[error_code]++;   // Increment error count for the specific error code
-    _set_errno(0);                       // Reset errno after handling
+    rte_clear_errno();                   // Reset errno after handling
 }
 
 
