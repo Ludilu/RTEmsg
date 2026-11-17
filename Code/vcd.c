@@ -1046,7 +1046,10 @@ static FILE* create_gtkw_file(const char* file_name, unsigned max_name_length)
 
     double scaling_factor = log2(((screen_width - signals_width) / (1920. - signals_width) * 8.2) / time_diff);
 
-    char* orig_locale = setlocale(LC_ALL, NULL);
+    // Copy the locale name: on glibc the string returned by setlocale() is freed by the next setlocale() call
+    char orig_locale[256];
+    const char* current_locale = setlocale(LC_ALL, NULL);
+    snprintf(orig_locale, sizeof(orig_locale), "%s", (current_locale != NULL) ? current_locale : "C");
     setlocale(LC_ALL, "C");             // Use '.' in decimal values instead of system default
 
     // Write GTKWave configuration file header
@@ -1255,7 +1258,10 @@ void vcd_print_double(const char* fmt_string, double value)
         }
     }
 
-    char* orig_locale = setlocale(LC_ALL, NULL);
+    // Copy the locale name: on glibc the string returned by setlocale() is freed by the next setlocale() call
+    char orig_locale[256];
+    const char* current_locale = setlocale(LC_ALL, NULL);
+    snprintf(orig_locale, sizeof(orig_locale), "%s", (current_locale != NULL) ? current_locale : "C");
     setlocale(LC_ALL, "C");             // Use '.' in decimal values instead of system default
     snprintf(vcd.temp_string, sizeof(vcd.temp_string), fmt_string, value);
     setlocale(LC_ALL, orig_locale);     // Restore the previous locale

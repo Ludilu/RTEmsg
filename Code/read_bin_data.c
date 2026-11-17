@@ -569,6 +569,7 @@ void load_data_from_binary_file(void)
             g_msg.complete_file_loaded = true;
                 // Entire data file has been loaded (unless shortened by check_data_size function)
             fclose(g_msg.file.rte_data);
+            g_msg.file.rte_data = NULL;     // Closed here, close_all_open_files() must not close it again
             break;
 
         case MODE_SINGLE_SHOT:
@@ -582,6 +583,7 @@ void load_data_from_binary_file(void)
             g_msg.complete_file_loaded = true;
                 // Entire data file has been loaded (unless shortened by check_data_size function)
             fclose(g_msg.file.rte_data);
+            g_msg.file.rte_data = NULL;     // Closed here, close_all_open_files() must not close it again
             break;
 
         case MODE_STREAMING:
